@@ -6,7 +6,12 @@ from typing import Any, Callable, Sequence, cast
 import cv2
 import numpy as np
 import skimage.transform
-from albucore.utils import clipped, get_num_channels, maybe_process_in_chunks, preserve_channel_dim
+from albucore.utils import (
+    clipped,
+    get_num_channels,
+    maybe_process_in_chunks,
+    preserve_channel_dim,
+)
 
 from albumentations import random_utils
 from albumentations.augmentations.functional import center
@@ -81,7 +86,12 @@ ROT90_180_FACTOR = 2
 ROT90_270_FACTOR = 3
 
 
-def bbox_rot90(bbox: BoxInternalType, factor: int, rows: int | None = None, cols: int | None = None) -> BoxInternalType:
+def bbox_rot90(
+    bbox: BoxInternalType,
+    factor: int,
+    rows: int | None = None,
+    cols: int | None = None,
+) -> BoxInternalType:
     """Rotates a bounding box by 90 degrees CCW (see np.rot90)
 
     Args:
@@ -234,9 +244,17 @@ def keypoint_d4(
         "r180": lambda x: keypoint_rot90(x, 2, rows, cols),  # Rotate 180 degrees
         "r270": lambda x: keypoint_rot90(x, 3, rows, cols),  # Rotate 270 degrees
         "v": lambda x: keypoint_vflip(x, rows, cols),  # Vertical flip
-        "hvt": lambda x: keypoint_transpose(keypoint_rot90(x, 2, rows, cols), rows, cols),  # Reflect over anti diagonal
+        "hvt": lambda x: keypoint_transpose(
+            keypoint_rot90(x, 2, rows, cols),
+            rows,
+            cols,
+        ),  # Reflect over anti diagonal
         "h": lambda x: keypoint_hflip(x, rows, cols),  # Horizontal flip
-        "t": lambda x: keypoint_transpose(x, rows, cols),  # Transpose (reflect over main diagonal)
+        "t": lambda x: keypoint_transpose(
+            x,
+            rows,
+            cols,
+        ),  # Transpose (reflect over main diagonal)
     }
     # Execute the appropriate transformation
     if group_member in transformations:
@@ -269,7 +287,13 @@ def rotate(
     return warp_fn(img)
 
 
-def bbox_rotate(bbox: BoxInternalType, angle: float, method: str, rows: int, cols: int) -> BoxInternalType:
+def bbox_rotate(
+    bbox: BoxInternalType,
+    angle: float,
+    method: str,
+    rows: int,
+    cols: int,
+) -> BoxInternalType:
     """Rotates a bounding box by angle degrees.
 
     Args:
@@ -345,7 +369,11 @@ def keypoint_rotate(
 def resize(img: np.ndarray, height: int, width: int, interpolation: int) -> np.ndarray:
     if (height, width) == img.shape[:2]:
         return img
-    resize_fn = maybe_process_in_chunks(cv2.resize, dsize=(width, height), interpolation=interpolation)
+    resize_fn = maybe_process_in_chunks(
+        cv2.resize,
+        dsize=(width, height),
+        interpolation=interpolation,
+    )
     return resize_fn(img)
 
 
@@ -356,7 +384,11 @@ def scale(img: np.ndarray, scale: float, interpolation: int) -> np.ndarray:
     return resize(img, new_height, new_width, interpolation)
 
 
-def keypoint_scale(keypoint: KeypointInternalType, scale_x: float, scale_y: float) -> KeypointInternalType:
+def keypoint_scale(
+    keypoint: KeypointInternalType,
+    scale_x: float,
+    scale_y: float,
+) -> KeypointInternalType:
     """Scales a keypoint by scale_x and scale_y.
 
     Args:
@@ -372,14 +404,24 @@ def keypoint_scale(keypoint: KeypointInternalType, scale_x: float, scale_y: floa
     return x * scale_x, y * scale_y, angle, scale * max(scale_x, scale_y)
 
 
-def _func_max_size(img: np.ndarray, max_size: int, interpolation: int, func: Callable[..., Any]) -> np.ndarray:
+def _func_max_size(
+    img: np.ndarray,
+    max_size: int,
+    interpolation: int,
+    func: Callable[..., Any],
+) -> np.ndarray:
     height, width = img.shape[:2]
 
     scale = max_size / float(func(width, height))
 
     if scale != 1.0:
         new_height, new_width = tuple(round(dim * scale) for dim in (height, width))
-        return resize(img, height=new_height, width=new_width, interpolation=interpolation)
+        return resize(
+            img,
+            height=new_height,
+            width=new_width,
+            interpolation=interpolation,
+        )
     return img
 
 
@@ -436,7 +478,15 @@ def perspective_bbox(
 
     x1, y1, x2, y2 = float("inf"), float("inf"), 0, 0
     for pt in points:
-        point = perspective_keypoint((*pt.tolist(), 0, 0), height, width, matrix, max_width, max_height, keep_size)
+        point = perspective_keypoint(
+            (*pt.tolist(), 0, 0),
+            height,
+            width,
+            matrix,
+            max_width,
+            max_height,
+            keep_size,
+        )
         x, y = point[:2]
         x1 = min(x1, x)
         x2 = max(x2, x)
@@ -445,7 +495,11 @@ def perspective_bbox(
 
     return cast(
         BoxInternalType,
-        normalize_bbox((x1, y1, x2, y2), height if keep_size else max_height, width if keep_size else max_width),
+        normalize_bbox(
+            (x1, y1, x2, y2),
+            height if keep_size else max_height,
+            width if keep_size else max_width,
+        ),
     )
 
 
@@ -589,7 +643,10 @@ def bbox_affine(
     y_min = np.min(points[:, 1])
     y_max = np.max(points[:, 1])
 
-    return cast(BoxInternalType, normalize_bbox((x_min, y_min, x_max, y_max), output_shape[0], output_shape[1]))
+    return cast(
+        BoxInternalType,
+        normalize_bbox((x_min, y_min, x_max, y_max), output_shape[0], output_shape[1]),
+    )
 
 
 @preserve_channel_dim
@@ -612,7 +669,12 @@ def safe_rotate(
     return warp_fn(img)
 
 
-def bbox_safe_rotate(bbox: BoxInternalType, matrix: np.ndarray, cols: int, rows: int) -> BoxInternalType:
+def bbox_safe_rotate(
+    bbox: BoxInternalType,
+    matrix: np.ndarray,
+    cols: int,
+    rows: int,
+) -> BoxInternalType:
     x1, y1, x2, y2 = denormalize_bbox(bbox, rows, cols)[:4]
     points = np.array(
         [
@@ -781,13 +843,20 @@ def from_distance_maps(
         raise ValueError(msg)
     height, width, nb_keypoints = distance_maps.shape
 
-    drop_if_not_found, if_not_found_x, if_not_found_y = validate_if_not_found_coords(if_not_found_coords)
+    drop_if_not_found, if_not_found_x, if_not_found_y = validate_if_not_found_coords(
+        if_not_found_coords,
+    )
 
     keypoints = []
     for i in range(nb_keypoints):
         hitidx_flat = np.argmax(distance_maps[..., i]) if inverted else np.argmin(distance_maps[..., i])
         hitidx_ndim = np.unravel_index(hitidx_flat, (height, width))
-        keypoint = find_keypoint(hitidx_ndim, distance_maps[:, :, i], threshold, inverted)
+        keypoint = find_keypoint(
+            hitidx_ndim,
+            distance_maps[:, :, i],
+            threshold,
+            inverted,
+        )
         if keypoint:
             keypoints.append(keypoint)
         elif not drop_if_not_found:
@@ -830,7 +899,12 @@ def bbox_piecewise_affine(
     ]
     dist_maps = to_distance_maps(keypoints, h, w, True)
     dist_maps = piecewise_affine(dist_maps, matrix, 0, "constant", 0)
-    keypoints = from_distance_maps(dist_maps, True, {"x": -1, "y": -1}, keypoints_threshold)
+    keypoints = from_distance_maps(
+        dist_maps,
+        True,
+        {"x": -1, "y": -1},
+        keypoints_threshold,
+    )
     keypoints = [i for i in keypoints if 0 <= i[0] < w and 0 <= i[1] < h]
     keypoints_arr = np.array(keypoints)
     x1 = keypoints_arr[:, 0].min()
@@ -928,7 +1002,11 @@ def rot90(img: np.ndarray, factor: int) -> np.ndarray:
     return np.rot90(img, factor)
 
 
-def bbox_vflip(bbox: BoxInternalType, rows: int | None = None, cols: int | None = None) -> BoxInternalType:
+def bbox_vflip(
+    bbox: BoxInternalType,
+    rows: int | None = None,
+    cols: int | None = None,
+) -> BoxInternalType:
     """Flip a bounding box vertically around the x-axis.
 
     Args:
@@ -944,7 +1022,11 @@ def bbox_vflip(bbox: BoxInternalType, rows: int | None = None, cols: int | None 
     return x_min, 1 - y_max, x_max, 1 - y_min
 
 
-def bbox_hflip(bbox: BoxInternalType, rows: int | None = None, cols: int | None = None) -> BoxInternalType:
+def bbox_hflip(
+    bbox: BoxInternalType,
+    rows: int | None = None,
+    cols: int | None = None,
+) -> BoxInternalType:
     """Flip a bounding box horizontally around the y-axis.
 
     Args:
@@ -960,7 +1042,12 @@ def bbox_hflip(bbox: BoxInternalType, rows: int | None = None, cols: int | None 
     return 1 - x_max, y_min, 1 - x_min, y_max
 
 
-def bbox_flip(bbox: BoxInternalType, d: int, rows: int | None = None, cols: int | None = None) -> BoxInternalType:
+def bbox_flip(
+    bbox: BoxInternalType,
+    d: int,
+    rows: int | None = None,
+    cols: int | None = None,
+) -> BoxInternalType:
     """Flip a bounding box either vertically, horizontally or both depending on the value of `d`.
 
     Args:
@@ -1012,7 +1099,11 @@ def bbox_transpose(
 
 
 @angle_2pi_range
-def keypoint_vflip(keypoint: KeypointInternalType, rows: int, cols: int) -> KeypointInternalType:
+def keypoint_vflip(
+    keypoint: KeypointInternalType,
+    rows: int,
+    cols: int,
+) -> KeypointInternalType:
     """Flip a keypoint vertically around the x-axis.
 
     Args:
@@ -1030,7 +1121,11 @@ def keypoint_vflip(keypoint: KeypointInternalType, rows: int, cols: int) -> Keyp
 
 
 @angle_2pi_range
-def keypoint_hflip(keypoint: KeypointInternalType, rows: int, cols: int) -> KeypointInternalType:
+def keypoint_hflip(
+    keypoint: KeypointInternalType,
+    rows: int,
+    cols: int,
+) -> KeypointInternalType:
     """Flip a keypoint horizontally around the y-axis.
 
     Args:
@@ -1048,7 +1143,12 @@ def keypoint_hflip(keypoint: KeypointInternalType, rows: int, cols: int) -> Keyp
 
 
 @angle_2pi_range
-def keypoint_flip(keypoint: KeypointInternalType, d: int, rows: int, cols: int) -> KeypointInternalType:
+def keypoint_flip(
+    keypoint: KeypointInternalType,
+    d: int,
+    rows: int,
+    cols: int,
+) -> KeypointInternalType:
     """Flip a keypoint either vertically, horizontally or both depending on the value of `d`.
 
     Args:
@@ -1080,7 +1180,11 @@ def keypoint_flip(keypoint: KeypointInternalType, d: int, rows: int, cols: int) 
 
 
 @angle_2pi_range
-def keypoint_transpose(keypoint: KeypointInternalType, rows: int, cols: int) -> KeypointInternalType:
+def keypoint_transpose(
+    keypoint: KeypointInternalType,
+    rows: int,
+    cols: int,
+) -> KeypointInternalType:
     """Transposes a keypoint along a specified axis: main diagonal
 
     Args:
@@ -1129,7 +1233,15 @@ def pad(
         w_pad_left = 0
         w_pad_right = 0
 
-    img = pad_with_params(img, h_pad_top, h_pad_bottom, w_pad_left, w_pad_right, border_mode, value)
+    img = pad_with_params(
+        img,
+        h_pad_top,
+        h_pad_bottom,
+        w_pad_left,
+        w_pad_right,
+        border_mode,
+        value,
+    )
 
     if img.shape[:2] != (max(min_height, height), max(min_width, width)):
         raise RuntimeError(
@@ -1218,8 +1330,22 @@ def optical_distortion(
     camera_matrix = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float32)
 
     distortion = np.array([k, k, 0, 0, 0], dtype=np.float32)
-    map1, map2 = cv2.initUndistortRectifyMap(camera_matrix, distortion, None, None, (width, height), cv2.CV_32FC1)
-    return cv2.remap(img, map1, map2, interpolation=interpolation, borderMode=border_mode, borderValue=value)
+    map1, map2 = cv2.initUndistortRectifyMap(
+        camera_matrix,
+        distortion,
+        None,
+        None,
+        (width, height),
+        cv2.CV_32FC1,
+    )
+    return cv2.remap(
+        img,
+        map1,
+        map2,
+        interpolation=interpolation,
+        borderMode=border_mode,
+        borderValue=value,
+    )
 
 
 @preserve_channel_dim
@@ -1298,7 +1424,15 @@ def elastic_transform_helper(
     cv2.GaussianBlur(dx, kernel_size, sigma, dst=dx)
     dx *= alpha
 
-    dy = dx if same_dxdy else random_utils.rand(height, width, random_state=random_state).astype(np.float32) * 2 - 1
+    dy = (
+        dx
+        if same_dxdy
+        else random_utils.rand(height, width, random_state=random_state).astype(
+            np.float32,
+        )
+        * 2
+        - 1
+    )
     if not same_dxdy:
         cv2.GaussianBlur(dy, kernel_size, sigma, dst=dy)
         dy *= alpha
@@ -1433,7 +1567,13 @@ def pad_bboxes(
         shift_vector = np.array([pad_left, pad_top, pad_left, pad_top])
         return shift_bboxes(bboxes, shift_vector)
 
-    grid_dimensions = get_pad_grid_dimensions(pad_top, pad_bottom, pad_left, pad_right, image_shape)
+    grid_dimensions = get_pad_grid_dimensions(
+        pad_top,
+        pad_bottom,
+        pad_left,
+        pad_right,
+        image_shape,
+    )
 
     bboxes = generate_reflected_bboxes(bboxes, grid_dimensions, image_shape)
 
@@ -1532,7 +1672,10 @@ def get_pad_grid_dimensions(
     original_row = math.ceil(pad_top / rows)
     original_col = math.ceil(pad_left / cols)
 
-    return {"grid_shape": (grid_rows, grid_cols), "original_position": (original_row, original_col)}
+    return {
+        "grid_shape": (grid_rows, grid_cols),
+        "original_position": (original_row, original_col),
+    }
 
 
 def generate_reflected_bboxes(
@@ -1557,10 +1700,22 @@ def generate_reflected_bboxes(
     # Prepare flipped versions of bboxes
     bboxes_hflipped = flip_bboxes(bboxes, flip_horizontal=True, image_shape=image_shape)
     bboxes_vflipped = flip_bboxes(bboxes, flip_vertical=True, image_shape=image_shape)
-    bboxes_hvflipped = flip_bboxes(bboxes, flip_horizontal=True, flip_vertical=True, image_shape=image_shape)
+    bboxes_hvflipped = flip_bboxes(
+        bboxes,
+        flip_horizontal=True,
+        flip_vertical=True,
+        image_shape=image_shape,
+    )
 
     # Shift all versions to the original position
-    shift_vector = np.array([original_col * cols, original_row * rows, original_col * cols, original_row * rows])
+    shift_vector = np.array(
+        [
+            original_col * cols,
+            original_row * rows,
+            original_col * cols,
+            original_row * rows,
+        ],
+    )
     bboxes_shifted = shift_bboxes(bboxes, shift_vector)
     bboxes_hflipped_shifted = shift_bboxes(bboxes_hflipped, shift_vector)
     bboxes_vflipped_shifted = shift_bboxes(bboxes_vflipped, shift_vector)
@@ -1624,7 +1779,11 @@ def flip_bboxes(
 
 
 @preserve_channel_dim
-def distort_image(image: np.ndarray, generated_mesh: np.ndarray, interpolation: int) -> np.ndarray:
+def distort_image(
+    image: np.ndarray,
+    generated_mesh: np.ndarray,
+    interpolation: int,
+) -> np.ndarray:
     """Apply perspective distortion to an image based on a generated mesh.
 
     This function applies a perspective transformation to each cell of the image defined by the
@@ -1679,7 +1838,12 @@ def distort_image(image: np.ndarray, generated_mesh: np.ndarray, interpolation: 
         perspective_mat = cv2.getPerspectiveTransform(src_quad, dst_quad)
 
         # Apply Perspective transformation
-        warped = cv2.warpPerspective(image, perspective_mat, (image.shape[1], image.shape[0]), flags=interpolation)
+        warped = cv2.warpPerspective(
+            image,
+            perspective_mat,
+            (image.shape[1], image.shape[0]),
+            flags=interpolation,
+        )
 
         # Create mask for the transformed region
         mask = np.zeros(image.shape[:2], dtype=np.uint8)
@@ -1726,21 +1890,35 @@ def calculate_grid_dimensions(
     grid_width, grid_height = num_grid_xy
 
     # Create meshgrid for row and column indices
-    col_indices, row_indices = np.meshgrid(np.arange(grid_width), np.arange(grid_height))
+    col_indices, row_indices = np.meshgrid(
+        np.arange(grid_width),
+        np.arange(grid_height),
+    )
 
     # Calculate x_min and y_min
     x_min = col_indices * square_shape[1]
     y_min = row_indices * square_shape[0]
 
     # Calculate x_max and y_max
-    x_max = np.where(col_indices == grid_width - 1, x_min + last_square_shape[1], x_min + square_shape[1])
-    y_max = np.where(row_indices == grid_height - 1, y_min + last_square_shape[0], y_min + square_shape[0])
+    x_max = np.where(
+        col_indices == grid_width - 1,
+        x_min + last_square_shape[1],
+        x_min + square_shape[1],
+    )
+    y_max = np.where(
+        row_indices == grid_height - 1,
+        y_min + last_square_shape[0],
+        y_min + square_shape[0],
+    )
 
     # Stack the dimensions
     return np.stack([x_min, y_min, x_max, y_max], axis=-1).astype(np.int16)
 
 
-def generate_distorted_grid_polygons(dimensions: np.ndarray, magnitude: int) -> np.ndarray:
+def generate_distorted_grid_polygons(
+    dimensions: np.ndarray,
+    magnitude: int,
+) -> np.ndarray:
     """Generate distorted grid polygons based on input dimensions and magnitude.
 
     This function creates a grid of polygons and applies random distortions to the internal vertices,
@@ -1791,22 +1969,20 @@ def generate_distorted_grid_polygons(dimensions: np.ndarray, magnitude: int) -> 
         size=(internal_points_height, internal_points_width, 2),
     ).astype(np.float32)
 
-    # Apply displacements to internal polygon vertices
-    for i in range(1, grid_height - 1):
-        for j in range(1, grid_width - 1):
-            dx, dy = displacements[i - 1, j - 1]
+    # Calculate the indices affected by the displacements
+    indices = np.arange(grid_height * grid_width).reshape(grid_height, grid_width)
 
-            # Bottom-right of cell (i-1, j-1)
-            polygons[(i - 1) * grid_width + (j - 1), 4:6] += [dx, dy]
+    # Calculate polygon indices
+    top_left = indices[1:, 1:]
+    top_right = indices[1:, :-1]
+    bottom_left = indices[:-1, 1:]
+    bottom_right = indices[:-1, :-1]
 
-            # Bottom-left of cell (i-1, j)
-            polygons[(i - 1) * grid_width + j, 6:8] += [dx, dy]
-
-            # Top-right of cell (i, j-1)
-            polygons[i * grid_width + (j - 1), 2:4] += [dx, dy]
-
-            # Top-left of cell (i, j)
-            polygons[i * grid_width + j, 0:2] += [dx, dy]
+    # Apply displacements
+    polygons[top_left, 0:2] += displacements
+    polygons[top_right, 2:4] += displacements
+    polygons[bottom_left, 6:8] += displacements
+    polygons[bottom_right, 4:6] += displacements
 
     return polygons
 
@@ -1824,7 +2000,13 @@ def pad_keypoints(
         shift_vector = np.array([pad_left, pad_top])  # Only shift x and y
         return shift_keypoints(keypoints, shift_vector)
 
-    grid_dimensions = get_pad_grid_dimensions(pad_top, pad_bottom, pad_left, pad_right, image_shape)
+    grid_dimensions = get_pad_grid_dimensions(
+        pad_top,
+        pad_bottom,
+        pad_left,
+        pad_right,
+        image_shape,
+    )
 
     keypoints = generate_reflected_keypoints(keypoints, grid_dimensions, image_shape)
 
@@ -1843,7 +2025,10 @@ def pad_keypoints(
     return validate_keypoints(keypoints, (new_height, new_width))
 
 
-def validate_keypoints(keypoints: np.ndarray, image_shape: tuple[int, int]) -> np.ndarray:
+def validate_keypoints(
+    keypoints: np.ndarray,
+    image_shape: tuple[int, int],
+) -> np.ndarray:
     """Validate keypoints and remove those that fall outside the image boundaries.
 
     Args:
@@ -1882,14 +2067,29 @@ def generate_reflected_keypoints(
     original_row, original_col = grid_dims["original_position"]
 
     # Prepare flipped versions of keypoints
-    keypoints_hflipped = flip_keypoints(keypoints, flip_horizontal=True, image_shape=image_shape)
-    keypoints_vflipped = flip_keypoints(keypoints, flip_vertical=True, image_shape=image_shape)
-    keypoints_hvflipped = flip_keypoints(keypoints, flip_horizontal=True, flip_vertical=True, image_shape=image_shape)
+    keypoints_hflipped = flip_keypoints(
+        keypoints,
+        flip_horizontal=True,
+        image_shape=image_shape,
+    )
+    keypoints_vflipped = flip_keypoints(
+        keypoints,
+        flip_vertical=True,
+        image_shape=image_shape,
+    )
+    keypoints_hvflipped = flip_keypoints(
+        keypoints,
+        flip_horizontal=True,
+        flip_vertical=True,
+        image_shape=image_shape,
+    )
 
     rows, cols = image_shape[:2]
 
     # Shift all versions to the original position
-    shift_vector = np.array([original_col * cols, original_row * rows, 0, 0])  # Only shift x and y
+    shift_vector = np.array(
+        [original_col * cols, original_row * rows, 0, 0],
+    )  # Only shift x and y
     keypoints_shifted = shift_keypoints(keypoints, shift_vector)
     keypoints_hflipped_shifted = shift_keypoints(keypoints_hflipped, shift_vector)
     keypoints_vflipped_shifted = shift_keypoints(keypoints_vflipped, shift_vector)
@@ -1910,7 +2110,14 @@ def generate_reflected_keypoints(
                 current_keypoints = keypoints_hvflipped_shifted
 
             # Shift to the current grid cell
-            cell_shift = np.array([(grid_col - original_col) * cols, (grid_row - original_row) * rows, 0, 0])
+            cell_shift = np.array(
+                [
+                    (grid_col - original_col) * cols,
+                    (grid_row - original_row) * rows,
+                    0,
+                    0,
+                ],
+            )
             shifted_keypoints = shift_keypoints(current_keypoints, cell_shift)
 
             new_keypoints.append(shifted_keypoints)
